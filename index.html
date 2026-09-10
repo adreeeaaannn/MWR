@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MWR">
+<meta name="theme-color" content="#d9534f">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>MWR</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#d9534f; --on-bg:#ffffff; --on-bg-soft:rgba(255,255,255,.9); --surface:#1c2d37; --raised:#243a47; --line:#2f4655;
+  --text:#e9f0f2; --muted:#8fa5b0; --amber:#f3b33d; --warn:#ff8a7a;
+  --round: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  --sans: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.4}
+body{padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 96px);max-width:560px;margin:0 auto}
+body.sub,body.typing{padding-bottom:calc(env(safe-area-inset-bottom) + 28px)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.view{display:none}.view.on{display:block}
+
+
+h1{color:var(--on-bg);font-family:var(--round);font-weight:700;font-size:34px;letter-spacing:-.02em;margin:4px 0 6px}
+h2{color:var(--on-bg);font-family:var(--round);font-weight:600;font-size:20px;margin:26px 0 10px}
+
+.datebar{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.nav{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:22px;line-height:1}
+.nav:disabled{opacity:.3}
+.date{flex:1;white-space:nowrap;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;font-size:17px;font-weight:500;color:var(--on-bg-soft);text-align:left}
+.tag{font-size:12px;font-weight:600;color:#15222b;background:var(--on-bg);border-radius:20px;padding:1px 8px}
+
+.group{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 14px}
+.row{display:grid;grid-template-columns:100px 1fr;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row>span:first-child{color:var(--muted);font-size:15px}
+input,textarea{font:inherit;font-size:16px;color:var(--text);background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input::placeholder,textarea::placeholder{color:#6d8390}
+input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-height:44px;text-align:center;padding:8px 4px}
+input[type=time]::-webkit-date-and-time-value{text-align:center}
+.money{display:flex;align-items:center;gap:8px}
+.money i{font-style:normal;color:var(--muted)}
+
+.pg{padding:10px 14px 14px}
+.pgrid{display:grid;grid-template-columns:48px 1fr 1fr 60px;gap:8px;align-items:center}
+.pgrid+.pgrid{margin-top:8px}
+.phead{font-size:13px;color:var(--muted);margin-bottom:6px}
+.plab{font-family:var(--round);font-weight:600;color:var(--muted);font-size:15px}
+.pgrid input{text-align:center;font-variant-numeric:tabular-nums;padding:10px 4px}
+output{text-align:right;font-family:var(--round);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;color:var(--amber);white-space:nowrap}
+output.dim{color:var(--muted)}
+output.bad{color:var(--warn)}
+.r{text-align:right}
+.daytotal{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.daytotal>span{color:var(--muted);font-size:15px}
+.daytotal strong{font-family:var(--round);font-size:24px;color:var(--amber);font-variant-numeric:tabular-nums}
+.daytotal strong.dim{color:#4d6371}
+
+.odo{display:flex;gap:3px}
+.odo b{display:inline-block;width:28px;height:40px;line-height:40px;text-align:center;font-family:var(--round);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--amber);background:linear-gradient(#0c151b,#1a2a33 50%,#0c151b);border-radius:5px;box-shadow:inset 0 0 0 1px #0008}
+.odo.zero b{color:#4d6371}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:26px}
+.card{position:relative;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px 14px 16px;min-height:100px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.card strong{font-family:var(--round);font-weight:600;font-size:16px}
+.card .snip{font-size:14px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card.filled::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--amber)}
+.card:active{background:var(--raised)}
+
+.dtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.back{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:8px 16px}
+.saved{font-size:14px;color:var(--amber);opacity:0;transition:opacity .25s}
+.saved.show{opacity:1}
+.dsub{color:var(--on-bg-soft);font-weight:500;margin:0 0 16px}
+.field+.field,.group+.field,.field+.group{margin-top:18px}
+.field label{display:block;font-family:var(--round);font-weight:600;margin-bottom:8px}
+textarea{min-height:55vh;resize:none;line-height:1.5;padding:14px}
+.two textarea{min-height:28vh}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stats span{display:block;font-size:13px;color:var(--muted)}
+.stats .wide{grid-column:1/-1}
+.stats strong{font-family:var(--round);font-size:21px;white-space:nowrap;color:var(--amber);font-variant-numeric:tabular-nums}
+.lrow{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;width:100%;padding:11px 0;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.lrow:last-child{border-bottom:0}
+.lrow>*:not(:first-child){text-align:right}
+.lrow.four{grid-template-columns:1.2fr 1fr 1fr 1fr}
+.lhead{font-size:13px;color:var(--muted)}
+.lrow .z{color:#4d6371}
+button.lrow:active{background:var(--raised)}
+.empty{color:var(--muted);padding:18px 0;margin:0}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;gap:4px;background:rgba(21,34,43,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom) + 6px)}
+.tabs button{flex:1;background:none;border:0;border-radius:10px;padding:10px 0;font-size:14px;color:var(--muted)}
+.tabs button.on{color:var(--amber);background:var(--surface)}
+body.sub .tabs,body.typing .tabs{display:none}
+.tabs button.icon{flex:0 0 46px;display:flex;align-items:center;justify-content:center}
+.tabs svg{width:22px;height:22px}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow strong{display:block;font-family:var(--round);font-weight:600}
+.srow span{display:block;font-size:14px;color:var(--muted)}
+.btn{flex:none;background:var(--amber);color:#15222b;border:0;border-radius:20px;padding:9px 18px;font-weight:600}
+.note{color:var(--on-bg);font-weight:500;min-height:1.4em;margin:12px 2px 0}
+.note.bad{background:#15222b;color:var(--warn);border-radius:10px;padding:10px 12px}
+.foot{color:var(--on-bg-soft);text-align:center;font-size:14px;margin:48px 0 0}
+@media (prefers-reduced-motion:reduce){.saved{transition:none}}
+</style>
+</head>
+<body>
+
+<section id="main" class="view on">
+  <h1>Work log</h1>
+  <div class="datebar">
+    <button class="nav" id="prev" aria-label="Previous day">‹</button>
+    <button class="date" id="dateBtn" aria-label="Jump to today"><span id="dateTxt"></span><span class="tag" id="todayTag">Today</span></button>
+    <button class="nav" id="next" aria-label="Next day">›</button>
+  </div>
+
+  <div class="group">
+    <label class="row"><span>Employer</span><input data-f="employer" autocomplete="off" placeholder="e.g. ECL"></label>
+  </div>
+
+  <h2>Hours</h2>
+  <div class="group pg">
+    <div class="pgrid phead"><span></span><span>Start</span><span>Finish</span><span class="r">Total</span></div>
+    <div id="hRows"></div>
+    <div class="daytotal"><span>Day total</span><strong id="hDay"></strong></div>
+  </div>
+
+  <h2>Mileage</h2>
+  <div class="group pg">
+    <div class="pgrid phead"><span></span><span>Start</span><span>Finish</span><span class="r">Miles</span></div>
+    <div id="mRows"></div>
+    <div class="daytotal"><span>Day total</span><div class="odo" id="odo" aria-live="polite"></div></div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+</section>
+
+<section id="detail" class="view">
+  <div class="dtop"><button class="back" id="back">‹ Back</button><span class="saved" id="saved">Saved</span></div>
+  <h1 id="dTitle"></h1>
+  <p class="dsub" id="dDate"></p>
+  <div id="dBody"></div>
+</section>
+
+<section id="ins" class="view"></section>
+
+<section id="settings" class="view">
+  <h1>Settings</h1>
+  <h2>Backup</h2>
+  <div class="group">
+    <div class="srow"><div><strong>Export data</strong><span id="bkInfo"></span></div><button class="btn" id="exportBtn">Export</button></div>
+    <div class="srow"><div><strong>Import data</strong><span>Restore from a backup file</span></div><button class="btn" id="importBtn">Import</button></div>
+  </div>
+  <p class="note" id="bkMsg" role="status"></p>
+  <p class="foot">My Work Record<br>© <span id="cYear">2026</span> Adrian Housby</p>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+</section>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="log" class="on">Log</button>
+  <button data-tab="hours">Hours</button>
+  <button data-tab="miles">Miles</button>
+  <button data-tab="wages">Wages</button>
+  <button data-tab="expenses">Expenses</button>
+  <button data-tab="settings" class="icon" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+</nav>
+
+<script>
+const PREFIX = 'mwr:';
+const PERIODS = [{id:'Am', label:'AM'}, {id:'Lunch', label:'Lunch'}, {id:'Pm', label:'PM'}];
+const SECTIONS = {
+  people:   {title:'People contacted', fields:[{f:'people', ph:'Who did you speak to, and what about?'}]},
+  journal:  {title:'Journal', fields:[{f:'journal', ph:'How did the shift go?'}]},
+  problems: {title:'Problems occurring', card:'Problems', fields:[{f:'problems', ph:'What went wrong, and what did you do about it?'}]},
+  training: {title:'Training', fields:[
+    {f:'trainingDone', label:'Done', ph:'Courses, shadowing, refreshers'},
+    {f:'trainingWanted', label:'Wanted', ph:'Anything you’d like to learn or ask for'}]},
+  wages:    {title:'Wages', fields:[
+    {f:'wageGross', label:'Gross', type:'money'},
+    {f:'wageNet', label:'Net', type:'money'}]},
+  expenses: {title:'Expenses', fields:[
+    {f:'petrol', label:'Petrol', type:'money'},
+    {f:'other', label:'Other', type:'money'},
+    {f:'otherNote', label:'Other was', type:'line', ph:'e.g. parking'}]}
+};
+
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; // local date, not UTC
+const noon = d => { const x = new Date(d); x.setHours(12,0,0,0); return x; };
+const parseKey = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d, 12); };
+const tyStartYear = d => d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1; // tax year from April
+const num = v => { const n = parseFloat(String(v || '').replace(/[£,\s]/g, '')); return isNaN(n) ? 0 : n; };
+const money = n => n.toLocaleString('en-GB', {style:'currency', currency:'GBP'});
+const fmtHM = min => `${Math.floor(min/60)}h ${pad(Math.round(min % 60))}m`;
+const toMin = t => { if (!t || !/^\d{1,2}:\d{2}/.test(t)) return null; const [h,m] = t.split(':').map(Number); return h*60 + m; };
+
+let cur = noon(new Date());
+let todayKey = keyOf(new Date());
+let data = {};
+let openSection = null;
+let tab = 'log';
+let insMonth = new Date(cur.getFullYear(), cur.getMonth(), 1, 12);
+let insTY = tyStartYear(cur);
+
+// One-off: carry over anything saved under the old WLR name
+(function migrate(){
+  const OLD = PREFIX.replace('mwr', 'wlr');
+  const oldKeys = Object.keys(localStorage).filter(k => k.startsWith(OLD));
+  if (!oldKeys.length || Object.keys(localStorage).some(k => k.startsWith(PREFIX))) return;
+  oldKeys.forEach(k => localStorage.setItem(PREFIX + k.slice(OLD.length), localStorage.getItem(k)));
+})();
+
+function load(k){ try { return JSON.parse(localStorage.getItem(PREFIX+k)) || {}; } catch(e){ return {}; } }
+function save(){
+  const hasContent = Object.values(data).some(v => String(v || '').trim() !== '');
+  if (hasContent) localStorage.setItem(PREFIX+keyOf(cur), JSON.stringify(data));
+  else localStorage.removeItem(PREFIX+keyOf(cur));
+  if (data.employer) localStorage.setItem(PREFIX+'lastEmployer', data.employer);
+}
+function allDays(){
+  const out = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k.startsWith(PREFIX)) continue;
+    const ds = k.slice(PREFIX.length);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) continue;
+    try { out.push({ds, d: JSON.parse(localStorage.getItem(k)) || {}}); } catch(e){}
+  }
+  return out.sort((a,b) => a.ds < b.ds ? -1 : 1);
+}
+
+// ---- Calculations ----
+function periodMin(d, p){
+  const s = toMin(d['h'+p+'Start']), e = toMin(d['h'+p+'End']);
+  if (s === null || e === null) return {v:null};
+  if (e < s) return {v:null, bad:true};
+  return {v:e - s};
+}
+function periodMiles(d, p){
+  const s = parseFloat(d['m'+p+'Start']), e = parseFloat(d['m'+p+'End']);
+  if (isNaN(s) || isNaN(e)) return {v:null};
+  if (e < s) return {v:null, bad:true};
+  return {v:Math.round(e - s)};
+}
+const dayMin = d => PERIODS.reduce((t,p) => t + (periodMin(d, p.id).v || 0), 0);
+const dayMiles = d => PERIODS.reduce((t,p) => t + (periodMiles(d, p.id).v || 0), 0);
+
+// ---- Log page ----
+$('#hRows').innerHTML = PERIODS.map(p => `<div class="pgrid"><span class="plab">${p.label}</span>
+  <input type="time" data-f="h${p.id}Start" aria-label="${p.label} start time">
+  <input type="time" data-f="h${p.id}End" aria-label="${p.label} finish time">
+  <output id="h${p.id}Out"></output></div>`).join('');
+$('#mRows').innerHTML = PERIODS.map(p => `<div class="pgrid"><span class="plab">${p.label}</span>
+  <input data-f="m${p.id}Start" inputmode="numeric" autocomplete="off" aria-label="${p.label} start mileage">
+  <input data-f="m${p.id}End" inputmode="numeric" autocomplete="off" aria-label="${p.label} finish mileage">
+  <output id="m${p.id}Out"></output></div>`).join('');
+$('#cards').innerHTML = Object.keys(SECTIONS).map(id =>
+  `<button class="card" data-open="${id}"><strong>${SECTIONS[id].card || SECTIONS[id].title}</strong><span class="snip"></span></button>`).join('');
+
+function showOut(el, r, fmt){
+  el.className = r.bad ? 'bad' : (r.v === null ? 'dim' : '');
+  el.textContent = r.bad ? 'Check' : (r.v === null ? '–' : fmt(r.v));
+}
+function renderHours(){
+  PERIODS.forEach(p => showOut($('#h'+p.id+'Out'), periodMin(data, p.id), fmtHM));
+  const t = dayMin(data), el = $('#hDay');
+  el.textContent = fmtHM(t); el.className = t ? '' : 'dim';
+}
+function renderMiles(){
+  PERIODS.forEach(p => showOut($('#m'+p.id+'Out'), periodMiles(data, p.id), v => v));
+  const t = dayMiles(data), s = String(t).padStart(2, '0'), odo = $('#odo');
+  odo.classList.toggle('zero', t === 0);
+  odo.setAttribute('aria-label', `${t} miles`);
+  odo.innerHTML = [...s].map(c => `<b>${c}</b>`).join('');
+}
+function snippet(id){
+  return SECTIONS[id].fields.map(x => {
+    const v = String(data[x.f] || '').trim();
+    if (!v) return '';
+    return x.type === 'money' ? `${x.label} ${money(num(v))}` : v;
+  }).filter(Boolean).join(' / ');
+}
+function renderCards(){
+  document.querySelectorAll('.card').forEach(card => {
+    const txt = snippet(card.dataset.open);
+    card.classList.toggle('filled', !!txt);
+    card.querySelector('.snip').textContent = txt || 'Tap to add';
+  });
+}
+const longDate = d => d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+
+function render(){
+  data = load(keyOf(cur));
+  if (!data.employer) { const last = localStorage.getItem(PREFIX+'lastEmployer'); if (last) data.employer = last; }
+  document.querySelectorAll('#main [data-f]').forEach(el => { el.value = data[el.dataset.f] || ''; });
+  const isToday = keyOf(cur) === todayKey;
+  $('#dateTxt').textContent = cur.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'long'});
+  $('#todayTag').style.display = isToday ? '' : 'none';
+  $('#next').disabled = isToday;
+  renderHours(); renderMiles(); renderCards();
+}
+
+// Autosave on any field, log page or detail page
+let savedTimer;
+function onField(e){
+  const f = e.target.dataset && e.target.dataset.f;
+  if (!f) return;
+  data[f] = e.target.value;
+  save();
+  if (f[0] === 'h' && /Start|End/.test(f)) renderHours();
+  if (f[0] === 'm' && /Start|End/.test(f)) renderMiles();
+  if (openSection) {
+    $('#saved').classList.add('show');
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => $('#saved').classList.remove('show'), 1200);
+  }
+}
+document.addEventListener('input', onField);
+document.addEventListener('change', onField);
+
+// Hide the tab bar while typing so it doesn't float above the keyboard
+document.addEventListener('focusin', e => { if (e.target.matches('input,textarea')) document.body.classList.add('typing'); });
+document.addEventListener('focusout', () => setTimeout(() => {
+  if (!document.activeElement || !document.activeElement.matches('input,textarea')) document.body.classList.remove('typing');
+}, 100));
+
+$('#prev').onclick = () => { cur.setDate(cur.getDate() - 1); render(); };
+$('#next').onclick = () => { if (keyOf(cur) !== todayKey) { cur.setDate(cur.getDate() + 1); render(); } };
+$('#dateBtn').onclick = () => { cur = noon(new Date()); render(); };
+
+// ---- Detail pages ----
+document.querySelectorAll('.card').forEach(card => card.onclick = () => openDetail(card.dataset.open));
+function openDetail(id){
+  openSection = id;
+  const sec = SECTIONS[id], body = $('#dBody');
+  $('#dTitle').textContent = sec.title;
+  $('#dDate').textContent = longDate(cur);
+  body.className = sec.fields.filter(x => !x.type).length > 1 ? 'two' : '';
+  body.innerHTML = '';
+  let group = null;
+  sec.fields.forEach(x => {
+    const val = String(data[x.f] || '').replace(/"/g, '&quot;');
+    if (x.type) {
+      if (!group) { group = document.createElement('div'); group.className = 'group'; body.appendChild(group); }
+      const input = x.type === 'money'
+        ? `<span class="money"><i>£</i><input data-f="${x.f}" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${val}"></span>`
+        : `<input data-f="${x.f}" autocomplete="off" placeholder="${x.ph || ''}" value="${val}">`;
+      group.insertAdjacentHTML('beforeend', `<label class="row"><span>${x.label}</span>${input}</label>`);
+    } else {
+      group = null;
+      const wrap = document.createElement('div'); wrap.className = 'field';
+      if (x.label) { const l = document.createElement('label'); l.textContent = x.label; l.htmlFor = 'ta-'+x.f; wrap.appendChild(l); }
+      const ta = document.createElement('textarea');
+      ta.id = 'ta-'+x.f; ta.dataset.f = x.f; ta.placeholder = x.ph; ta.value = data[x.f] || '';
+      if (!x.label) ta.setAttribute('aria-label', sec.title);
+      wrap.appendChild(ta); body.appendChild(wrap);
+    }
+  });
+  $('#main').classList.remove('on'); $('#detail').classList.add('on');
+  document.body.classList.add('sub');
+  window.scrollTo(0, 0);
+}
+$('#back').onclick = () => {
+  if (document.activeElement) document.activeElement.blur();
+  openSection = null;
+  document.body.classList.remove('sub', 'typing');
+  $('#detail').classList.remove('on'); $('#main').classList.add('on');
+  renderCards(); window.scrollTo(0, 0);
+};
+
+// ---- Tabs ----
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(t){
+  tab = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  if (t === 'log') { $('#main').classList.add('on'); render(); }
+  else if (t === 'settings') { $('#settings').classList.add('on'); $('#bkMsg').textContent = ''; renderSettings(); }
+  else { $('#ins').classList.add('on'); renderIns(); }
+  window.scrollTo(0, 0);
+}
+
+// ---- Insights ----
+function renderIns(){
+  const el = $('#ins');
+  el.innerHTML = (tab === 'hours' || tab === 'miles') ? monthView() : taxYearView();
+  const prev = $('#iPrev'), next = $('#iNext');
+  if (tab === 'hours' || tab === 'miles') {
+    prev.onclick = () => { insMonth.setMonth(insMonth.getMonth() - 1); renderIns(); };
+    next.onclick = () => { insMonth.setMonth(insMonth.getMonth() + 1); renderIns(); };
+  } else {
+    prev.onclick = () => { insTY--; renderIns(); };
+    next.onclick = () => { insTY++; renderIns(); };
+  }
+  el.querySelectorAll('[data-day]').forEach(r => r.onclick = () => { cur = parseKey(r.dataset.day); showTab('log'); });
+}
+
+function monthView(){
+  const isH = tab === 'hours';
+  const f = isH ? fmtHM : v => `${v}`;
+  const y = insMonth.getFullYear(), m = insMonth.getMonth();
+  const mKey = `${y}-${pad(m+1)}`;
+  const tyKey = `${tyStartYear(insMonth)}-04-01`;
+  let tyRun = 0, mRun = 0; const rows = [];
+  for (const x of allDays()) {
+    if (x.ds < tyKey || x.ds > mKey + '-31') continue;
+    const v = isH ? dayMin(x.d) : dayMiles(x.d);
+    if (!v) continue;
+    tyRun += v;
+    if (x.ds.startsWith(mKey)) { mRun += v; rows.push({ds:x.ds, v, run: isH ? mRun : tyRun}); }
+  }
+  const unit = isH ? '' : ' mi';
+  const list = rows.length
+    ? `<div class="lrow lhead"><span>Day</span><span>${isH ? 'Hours' : 'Miles'}</span><span>${isH ? 'Month so far' : 'Since April'}</span></div>` +
+      rows.map(r => `<button class="lrow" data-day="${r.ds}"><span>${parseKey(r.ds).toLocaleDateString('en-GB', {weekday:'short', day:'numeric'})}</span><span>${f(r.v)}</span><span>${f(r.run)}</span></button>`).join('')
+    : `<p class="empty">No ${isH ? 'hours' : 'mileage'} logged this month.</p>`;
+  return `<h1>${isH ? 'Hours' : 'Mileage'}</h1>
+    <div class="datebar"><button class="nav" id="iPrev" aria-label="Previous month">‹</button>
+      <span class="date">${insMonth.toLocaleDateString('en-GB', {month:'long', year:'numeric'})}</span>
+      <button class="nav" id="iNext" aria-label="Next month" ${mKey >= todayKey.slice(0,7) ? 'disabled' : ''}>›</button></div>
+    <div class="stats"><div><span>This month</span><strong>${f(mRun)}${unit}</strong></div>
+      <div><span>Since April</span><strong>${f(tyRun)}${unit}</strong></div></div>
+    <div class="group">${list}</div>`;
+}
+
+function taxYearView(){
+  const isW = tab === 'wages';
+  const today = new Date();
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(insTY, 3 + i, 1, 12);
+    if (d > today) break;
+    months.push({key:`${d.getFullYear()}-${pad(d.getMonth()+1)}`, name:d.toLocaleDateString('en-GB', {month:'long'}), a:0, b:0});
+  }
+  for (const x of allDays()) {
+    const mo = months.find(mm => x.ds.startsWith(mm.key));
+    if (!mo) continue;
+    if (isW) { mo.a += num(x.d.wageGross); mo.b += num(x.d.wageNet); }
+    else { mo.a += num(x.d.petrol); mo.b += num(x.d.other); }
+  }
+  const A = months.reduce((t,mm) => t + mm.a, 0), B = months.reduce((t,mm) => t + mm.b, 0);
+  const c = n => n ? money(n) : '<span class="z">–</span>';
+  const head = isW
+    ? `<div class="lrow lhead"><span>Month</span><span>Gross</span><span>Net</span></div>`
+    : `<div class="lrow four lhead"><span>Month</span><span>Petrol</span><span>Other</span><span>Total</span></div>`;
+  const rows = months.map(mm => isW
+    ? `<div class="lrow"><span>${mm.name}</span><span>${c(mm.a)}</span><span>${c(mm.b)}</span></div>`
+    : `<div class="lrow four"><span>${mm.name}</span><span>${c(mm.a)}</span><span>${c(mm.b)}</span><span>${c(mm.a + mm.b)}</span></div>`).join('');
+  const stats = isW
+    ? `<div><span>Gross</span><strong>${money(A)}</strong></div><div><span>Net</span><strong>${money(B)}</strong></div>`
+    : `<div class="wide"><span>Total</span><strong>${money(A + B)}</strong></div><div><span>Petrol</span><strong>${money(A)}</strong></div><div><span>Other</span><strong>${money(B)}</strong></div>`;
+  return `<h1>${isW ? 'Wages' : 'Expenses'}</h1>
+    <div class="datebar"><button class="nav" id="iPrev" aria-label="Previous tax year">‹</button>
+      <span class="date">Tax year ${insTY}/${String(insTY + 1).slice(2)}</span>
+      <button class="nav" id="iNext" aria-label="Next tax year" ${insTY >= tyStartYear(today) ? 'disabled' : ''}>›</button></div>
+    <div class="stats">${stats}</div>
+    <div class="group">${head}${rows}</div>`;
+}
+
+// ---- Settings: backup ----
+(function(){ const y = new Date().getFullYear(); $('#cYear').textContent = y > 2026 ? `2026–${y}` : '2026'; })();
+
+function msg(text, bad){ const m = $('#bkMsg'); m.textContent = text; m.className = 'note' + (bad ? ' bad' : ''); }
+function renderSettings(){
+  const n = allDays().length, last = localStorage.getItem(PREFIX+'lastBackup');
+  const when = last ? new Date(last).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : null;
+  $('#bkInfo').textContent = `${n} ${n === 1 ? 'day' : 'days'} logged. ` + (when ? `Last exported ${when}.` : 'Not exported yet.');
+}
+
+$('#exportBtn').onclick = () => {
+  const days = {}; allDays().forEach(x => { days[x.ds] = x.d; });
+  const n = Object.keys(days).length;
+  if (!n) { msg('Nothing to export yet.'); return; }
+  const payload = {app:'MWR', version:1, exported:new Date().toISOString(),
+    lastEmployer: localStorage.getItem(PREFIX+'lastEmployer') || '', days};
+  const name = `mwr-backup-${todayKey}.json`;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const done = () => { localStorage.setItem(PREFIX+'lastBackup', new Date().toISOString()); renderSettings(); msg(`Exported ${n} days.`); };
+  const download = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    done();
+  };
+  let file = null;
+  try { file = new File([blob], name, {type:'application/json'}); } catch(e){}
+  if (file && navigator.canShare && navigator.canShare({files:[file]})) {
+    navigator.share({files:[file], title:name}).then(done).catch(e => { if (e.name !== 'AbortError') download(); });
+  } else download();
+};
+
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    let days, p;
+    try { p = JSON.parse(r.result); days = p && p.days; } catch(err){}
+    const keys = days && typeof days === 'object' ? Object.keys(days).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)) : [];
+    if (!keys.length) { msg('That file isn’t an MWR backup. Choose a file exported from this app.', true); return; }
+    if (!confirm(`Import ${keys.length} days from this file? Any day already on this phone with the same date will be replaced.`)) return;
+    keys.forEach(k => localStorage.setItem(PREFIX+k, JSON.stringify(days[k])));
+    if (p.lastEmployer) localStorage.setItem(PREFIX+'lastEmployer', p.lastEmployer);
+    renderSettings();
+    msg(`Imported ${keys.length} days.`);
+  };
+  r.onerror = () => msg('Couldn’t read that file. Try choosing it again.', true);
+  r.readAsText(f);
+};
+
+// Day rollover when iOS resumes the app on a new day
+function checkDay(){
+  const nowKey = keyOf(new Date());
+  if (nowKey === todayKey) return;
+  const wasOnToday = keyOf(cur) === todayKey;
+  todayKey = nowKey;
+  if (openSection) return;
+  if (wasOnToday) cur = noon(new Date());
+  refreshTab();
+}
+function refreshTab(){ if (tab === 'log') render(); else if (tab === 'settings') renderSettings(); else renderIns(); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
+window.addEventListener('pageshow', checkDay);
+window.addEventListener('focus', checkDay);
+setInterval(checkDay, 60000);
+
+
+render();
+
+// Offline support
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
