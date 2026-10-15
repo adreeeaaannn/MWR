@@ -76,13 +76,22 @@ output.bad{color:var(--warn)}
 
 .dtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .back{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:8px 16px}
-.saved{font-size:14px;color:var(--amber);opacity:0;transition:opacity .25s}
+.saved{font-size:14px;font-weight:600;color:var(--on-bg);opacity:0;transition:opacity .25s}
 .saved.show{opacity:1}
 .dsub{color:var(--on-bg-soft);font-weight:500;margin:0 0 16px}
 .field+.field,.group+.field,.field+.group{margin-top:18px}
 .field label{display:block;font-family:var(--round);font-weight:600;margin-bottom:8px}
-textarea{min-height:55vh;resize:none;line-height:1.5;padding:14px}
-.two textarea{min-height:28vh}
+textarea{min-height:30vh;resize:none;line-height:1.5;padding:14px}
+.two textarea{min-height:20vh}
+.hist{margin-top:30px}
+.hist h2{margin:0 0 10px}
+.hcard{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.hcard time{display:block;font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px}
+.hcard p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.hcard p+p{margin-top:6px}
+.hcard em{font-style:normal;color:var(--muted)}
+.hcard:active{background:var(--raised)}
+.hempty{color:var(--on-bg-soft);margin:0}
 
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
@@ -112,6 +121,21 @@ body.sub .tabs,body.typing .tabs{display:none}
 .note{color:var(--on-bg);font-weight:500;min-height:1.4em;margin:12px 2px 0}
 .note.bad{background:#15222b;color:var(--warn);border-radius:10px;padding:10px 12px}
 .foot{color:var(--on-bg-soft);text-align:center;font-size:14px;margin:48px 0 0}
+.calwrap{display:none;position:fixed;inset:0;z-index:30;background:rgba(10,18,24,.55);align-items:flex-end;justify-content:center;padding:0 12px calc(env(safe-area-inset-bottom) + 12px)}
+.calwrap.on{display:flex}
+.calsheet{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px}
+.calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.calhead strong{font-family:var(--round);font-size:18px}
+.calwk,.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.calwk span{font-size:12px;color:var(--muted);padding:4px 0}
+.cday{position:relative;aspect-ratio:1/1;border:0;border-radius:12px;background:none;color:var(--text);font-size:16px;font-variant-numeric:tabular-nums}
+.cday:disabled{color:#4d6371}
+.cday.now{box-shadow:inset 0 0 0 1.5px var(--amber)}
+.cday.has::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--amber)}
+.cday.sel{background:var(--amber);color:#15222b;font-weight:700}
+.cday.sel::after{background:#15222b}
+.calfoot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.nav svg{width:20px;height:20px}
 @media (prefers-reduced-motion:reduce){.saved{transition:none}}
 </style>
 </head>
@@ -122,6 +146,7 @@ body.sub .tabs,body.typing .tabs{display:none}
   <div class="datebar">
     <button class="nav" id="prev" aria-label="Previous day">‹</button>
     <button class="date" id="dateBtn" aria-label="Jump to today"><span id="dateTxt"></span><span class="tag" id="todayTag">Today</span></button>
+    <button class="nav" id="calBtn" aria-label="Open calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
     <button class="nav" id="next" aria-label="Next day">›</button>
   </div>
 
@@ -167,6 +192,19 @@ body.sub .tabs,body.typing .tabs{display:none}
   <input type="file" id="importFile" accept=".json,application/json" hidden>
 </section>
 
+<div class="calwrap" id="cal" role="dialog" aria-modal="true" aria-label="Choose a date">
+  <div class="calsheet">
+    <div class="calhead">
+      <button class="nav" id="calPrev" aria-label="Previous month">‹</button>
+      <strong id="calTitle"></strong>
+      <button class="nav" id="calNext" aria-label="Next month">›</button>
+    </div>
+    <div class="calwk" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+    <div class="calgrid" id="calGrid"></div>
+    <div class="calfoot"><button class="btn" id="calToday">Today</button><button class="back" id="calClose">Close</button></div>
+  </div>
+</div>
+
 <nav class="tabs" id="tabs">
   <button data-tab="log" class="on">Log</button>
   <button data-tab="hours">Hours</button>
@@ -180,10 +218,10 @@ body.sub .tabs,body.typing .tabs{display:none}
 const PREFIX = 'mwr:';
 const PERIODS = [{id:'Am', label:'AM'}, {id:'Lunch', label:'Lunch'}, {id:'Pm', label:'PM'}];
 const SECTIONS = {
-  people:   {title:'People contacted', fields:[{f:'people', ph:'Who did you speak to, and what about?'}]},
-  journal:  {title:'Journal', fields:[{f:'journal', ph:'How did the shift go?'}]},
-  problems: {title:'Problems occurring', card:'Problems', fields:[{f:'problems', ph:'What went wrong, and what did you do about it?'}]},
-  training: {title:'Training', fields:[
+  people:   {title:'People contacted', history:true, fields:[{f:'people', ph:'Who did you speak to, and what about?'}]},
+  journal:  {title:'Journal', history:true, fields:[{f:'journal', ph:'How did the shift go?'}]},
+  problems: {title:'Problems occurring', card:'Problems', history:true, fields:[{f:'problems', ph:'What went wrong, and what did you do about it?'}]},
+  training: {title:'Training', history:true, fields:[
     {f:'trainingDone', label:'Done', ph:'Courses, shadowing, refreshers'},
     {f:'trainingWanted', label:'Wanted', ph:'Anything you’d like to learn or ask for'}]},
   wages:    {title:'Wages', fields:[
@@ -346,7 +384,7 @@ function openDetail(id){
   openSection = id;
   const sec = SECTIONS[id], body = $('#dBody');
   $('#dTitle').textContent = sec.title;
-  $('#dDate').textContent = longDate(cur);
+  $('#dDate').textContent = longDate(cur) + (keyOf(cur) === todayKey ? '' : ' · earlier day');
   body.className = sec.fields.filter(x => !x.type).length > 1 ? 'two' : '';
   body.innerHTML = '';
   let group = null;
@@ -368,16 +406,42 @@ function openDetail(id){
       wrap.appendChild(ta); body.appendChild(wrap);
     }
   });
+  if (sec.history) body.appendChild(historyEl(id));
   $('#main').classList.remove('on'); $('#detail').classList.add('on');
   document.body.classList.add('sub');
   window.scrollTo(0, 0);
+}
+function historyEl(id){
+  const sec = SECTIONS[id], curKey = keyOf(cur), thisYear = new Date().getFullYear();
+  const items = allDays().filter(x => x.ds !== curKey && sec.fields.some(f => String(x.d[f.f] || '').trim())).reverse();
+  const wrap = document.createElement('div'); wrap.className = 'hist';
+  const h = document.createElement('h2'); h.textContent = items.length ? `Earlier entries (${items.length})` : 'Earlier entries';
+  wrap.appendChild(h);
+  if (!items.length) { const p = document.createElement('p'); p.className = 'hempty'; p.textContent = 'Nothing earlier yet.'; wrap.appendChild(p); }
+  items.forEach(x => {
+    const d = parseKey(x.ds), b = document.createElement('button'), t = document.createElement('time');
+    b.type = 'button'; b.className = 'hcard';
+    t.textContent = d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'long', year: d.getFullYear() === thisYear ? undefined : 'numeric'});
+    b.appendChild(t);
+    sec.fields.forEach(f => {
+      const v = String(x.d[f.f] || '').trim();
+      if (!v) return;
+      const p = document.createElement('p');
+      if (sec.fields.length > 1) { const em = document.createElement('em'); em.textContent = f.label + ': '; p.appendChild(em); }
+      p.appendChild(document.createTextNode(v));
+      b.appendChild(p);
+    });
+    b.onclick = () => { cur = parseKey(x.ds); render(); openDetail(id); };
+    wrap.appendChild(b);
+  });
+  return wrap;
 }
 $('#back').onclick = () => {
   if (document.activeElement) document.activeElement.blur();
   openSection = null;
   document.body.classList.remove('sub', 'typing');
   $('#detail').classList.remove('on'); $('#main').classList.add('on');
-  renderCards(); window.scrollTo(0, 0);
+  render(); window.scrollTo(0, 0);
 };
 
 // ---- Tabs ----
@@ -468,6 +532,45 @@ function taxYearView(){
     <div class="stats">${stats}</div>
     <div class="group">${head}${rows}</div>`;
 }
+
+// ---- Calendar ----
+let calMonth = new Date(cur.getFullYear(), cur.getMonth(), 1, 12);
+function openCal(){
+  calMonth = new Date(cur.getFullYear(), cur.getMonth(), 1, 12);
+  renderCal();
+  $('#cal').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  $('#calClose').focus();
+}
+function closeCal(){
+  $('#cal').classList.remove('on');
+  document.body.style.overflow = '';
+  $('#calBtn').focus();
+}
+function renderCal(){
+  const y = calMonth.getFullYear(), m = calMonth.getMonth(), curKey = keyOf(cur);
+  $('#calTitle').textContent = calMonth.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+  const has = new Set(allDays().map(x => x.ds));
+  const lead = (new Date(y, m, 1, 12).getDay() + 6) % 7;   // weeks start on Monday
+  const count = new Date(y, m + 1, 0).getDate();
+  let html = '<span></span>'.repeat(lead);
+  for (let d = 1; d <= count; d++) {
+    const ds = `${y}-${pad(m+1)}-${pad(d)}`;
+    const label = parseKey(ds).toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) + (has.has(ds) ? ', has entries' : '');
+    html += `<button class="cday${ds === curKey ? ' sel' : ''}${ds === todayKey ? ' now' : ''}${has.has(ds) ? ' has' : ''}" data-d="${ds}" aria-label="${label}"${ds === curKey ? ' aria-current="date"' : ''}${ds > todayKey ? ' disabled' : ''}>${d}</button>`;
+  }
+  const grid = $('#calGrid');
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { cur = parseKey(b.dataset.d); render(); closeCal(); window.scrollTo(0, 0); });
+  $('#calNext').disabled = `${y}-${pad(m+1)}` >= todayKey.slice(0, 7);
+}
+$('#calBtn').onclick = openCal;
+$('#calClose').onclick = closeCal;
+$('#cal').onclick = e => { if (e.target === e.currentTarget) closeCal(); };
+$('#calPrev').onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCal(); };
+$('#calNext').onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCal(); };
+$('#calToday').onclick = () => { cur = noon(new Date()); render(); closeCal(); window.scrollTo(0, 0); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#cal').classList.contains('on')) closeCal(); });
 
 // ---- Settings: backup ----
 (function(){ const y = new Date().getFullYear(); $('#cYear').textContent = y > 2026 ? `2026–${y}` : '2026'; })();
